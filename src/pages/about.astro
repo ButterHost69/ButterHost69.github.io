@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="About" description="A bit about me.">
+  <section style="padding: 5rem 0 6rem;">
+    <div class="container prose">
+      <h1 style="margin-bottom: 2rem;">About</h1>
+      <div class="prose-content">
+        <p>
+          Hi! I'm a CS/engineering student with interests that range from machine learning
+          research to web security to building things that feel good to use.
+        </p>
+        <p>
+          Right now I'm working on <strong>adapTrunc</strong>, a project exploring whether
+          we can use class separability as a proxy to find the optimal truncation depth in
+          BERT-style models — the goal being faster inference without fine-tuning every layer.
+        </p>
+        <p>
+          Outside of research, I spend time on security labs, building small web tools,
+          and occasionally writing about what I'm learning here on the blog.
+        </p>
+        <h2>Links</h2>
+        <ul>
+          <li><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:you@example.com">Email</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

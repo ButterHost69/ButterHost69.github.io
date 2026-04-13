@@ -1,0 +1,195 @@
+/* ── Fonts ─────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=Iosevka+Charon:wght@300;400;500;600&display=swap');
+
+/* ── Design tokens ─────────────────────────────────── */
+:root {
+  --ivory:    #fefefe;
+  --lavender: #58acf4;
+  --violet:   #BF0A19;
+  --ink:      #412a1e;
+  --muted:    #105edd;
+  --accent:   #f8de3c;
+  --border:   #58acf4;
+  --dark:     #0b3075;
+  --blue:     #4A6FA5;
+  --link:     #58acf4;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 2rem;
+  --space-lg: 4rem;
+  --space-xl: 8rem;
+
+  --max-w: 720px;
+  --max-w-wide: 1100px;
+}
+
+/* ── Reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 17px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+/* ── Typography ────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); }
+h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+h3 { font-size: 1.3rem; }
+
+p { margin-bottom: 1.4em; }
+p:last-child { margin-bottom: 0; }
+
+a {
+  color: var(--violet);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--accent);
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--violet);
+}
+
+/* ── Layout helpers ────────────────────────────────── */
+.container {
+  width: 100%;
+  max-width: var(--max-w-wide);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}
+
+.prose {
+  max-width: var(--max-w);
+  margin-inline: auto;
+}
+
+/* ── Prose (blog content) ──────────────────────────── */
+.prose-content h2,
+.prose-content h3 {
+  margin-top: 2.5em;
+  margin-bottom: 0.6em;
+}
+.prose-content ul, .prose-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.4em;
+}
+.prose-content li { margin-bottom: 0.4em; }
+.prose-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.6em 1.2em;
+  margin: 2em 0;
+  color: var(--muted);
+  font-style: italic;
+  font-family: var(--font-display);
+}
+.prose-content code {
+  background: var(--lavender);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+.prose-content pre {
+  background: var(--ink);
+  color: var(--ivory);
+  padding: 1.4em;
+  border-radius: 10px;
+  overflow-x: auto;
+  margin: 2em 0;
+}
+.prose-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+.prose-content img {
+  width: 100%;
+  border-radius: 10px;
+  margin: 2em 0;
+}
+.prose-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3em 0;
+}
+
+/* ── Nav ───────────────────────────────────────────── */
+.nav {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border);
+}
+.nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav__logo {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.nav__links {
+  display: flex;
+  gap: var(--space-md);
+  list-style: none;
+}
+.nav__links a {
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav__links a:hover,
+.nav__links a[aria-current="page"] {
+  color: var(--violet);
+}
+
+/* ── Footer ────────────────────────────────────────── */
+.footer {
+  margin-top: var(--space-xl);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.footer a { color: var(--muted); }
+
+/* ── Tag pill ──────────────────────────────────────── */
+.tag {
+  display: inline-block;
+  background: var(--lavender);
+  color: var(--violet);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 0.2em 0.75em;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.tag:hover { background: var(--accent); color: var(--ivory); }
