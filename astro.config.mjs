@@ -2,6 +2,6 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 
 export default defineConfig({
-  integrations: [mdx()],
-  site: 'https://yoursite.com', // ← update this
-});
+  site: 'https://ButterHost69.github.io',
+  base: '/ButterHost69/ButterHost69.github.io',
+})
