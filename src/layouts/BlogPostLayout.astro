@@ -1,33 +1,20 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import type { CollectionEntry } from 'astro:content';
 
-const posts = (await getCollection('posts', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-
-const groups: Record<string, typeof posts> = {};
-for (const post of posts) {
-  const group = post.id.split('/')[0];
-  if (!groups[group]) groups[group] = [];
-  groups[group].push(post);
+interface Props {
+  post: CollectionEntry<'posts'>;
 }
 
-function kebabToTitleCase(str: string): string {
-  return str
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+const { post } = Astro.props;
+const { title, description, pubDate, tags } = post.data;
 
-const groupDisplayNames: Record<string, string> = {};
-for (const group of Object.keys(groups)) {
-  groupDisplayNames[group] = kebabToTitleCase(group);
-}
-
-const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+const formatted = pubDate.toLocaleDateString('en-US', {
+  year: 'numeric', month: 'long', day: 'numeric',
+});
 ---
 
-<BaseLayout title="Blogs" description="All writing organized by topic.">
+<BaseLayout title={title} description={description}>
   <aside class="sidebar">
     <div class="sidebar-top">
       <nav class="sidebar-nav">
@@ -53,48 +40,33 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
   </aside>
 
   <main class="main-content">
-    <h1 class="page-title">/blogs</h1>
-
-    <div class="tree-container">
-      {sortedGroups.map((group, groupIndex) => {
-        const groupPosts = groups[group];
-        const isLastGroup = groupIndex === sortedGroups.length - 1;
-        const groupPrefix = isLastGroup ? '└─ ' : '├─ ';
-        return (
-          <div class="tree-group">
-            <div class="tree-group-header">
-              <span class="tree-prefix">{groupPrefix}</span>
-              <span class="tree-group-name">{groupDisplayNames[group] || group}</span>
-            </div>
-            <div class="tree-group-children">
-              {groupPosts.map((post, postIndex) => {
-                const isLastPost = postIndex === groupPosts.length - 1;
-                const postPrefix = isLastGroup ? (isLastPost ? '    └─ ' : '    ├─ ') : (isLastPost ? '   └─ ' : '   ├─ ');
-                const postSlug = post.id.split('/').pop()!.replace(/\.md$/, '');
-                return (
-                  <a href={`/blogs/${postSlug}`} class="tree-item">
-                    <span class="tree-prefix">{postPrefix}</span>
-                    <span class="tree-item-title">{post.data.title}</span>
-                    <time datetime={post.data.pubDate.toISOString()}>
-                      {post.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </time>
-                  </a>
-                );
-              })}
-            </div>
+    <article class="post-container">
+      <header class="post-header">
+        {tags.length > 0 && (
+          <div class="tags">
+            {tags.map(tag => <span class="tag">{tag}</span>)}
           </div>
-        );
-      })}
-    </div>
+        )}
+        <h1 class="post-title">{title}</h1>
+        <time class="post-date" datetime={pubDate.toISOString()}>{formatted}</time>
+      </header>
+
+      <hr class="divider" />
+
+      <div class="post-content">
+        <slot />
+      </div>
+
+      <footer class="post-footer">
+        <a href="/blogs" class="back-link">← Back to blogs</a>
+      </footer>
+    </article>
   </main>
-
-
 </BaseLayout>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Iosevka+Charon:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
 
-  /* ── Burnt dark palette ────────────────────────────── */
   :root {
     --burnt-bg:         #140a05;
     --text:             #f5f0e0;
@@ -104,7 +76,6 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
     --glass:            rgba(20, 10, 5, 0.65);
     --glass-hover:      rgba(20, 10, 5, 0.82);
     --glass-border:     rgba(224, 168, 32, 0.10);
-    --shadow:           rgba(0, 0, 0, 0.55);
     --highlight:        inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
@@ -145,9 +116,7 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow:
-      0 0 0 transparent,
-      var(--highlight);
+    box-shadow: 0 0 0 transparent, var(--highlight);
   }
 
   .sidebar-top {
@@ -185,29 +154,6 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
     height: 1.4rem;
   }
 
-  .sidebar-logo {
-    font-family: var(--font-display);
-    font-size: 1.35rem;
-    color: var(--text);
-    text-decoration: none;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    transition: color 0.25s ease;
-  }
-
-  .sidebar-logo:hover {
-    color: var(--accent);
-  }
-
-  .separator {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent-soft), transparent);
-    margin: 0;
-    border-radius: 1px;
-    opacity: 0.4;
-  }
-
   .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -236,107 +182,182 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
   /* ── Main content ──────────────────────────────────── */
   .main-content {
     margin-left: 280px;
-    padding: 3rem 3.5rem;
+    padding: 1.5rem;
     min-height: 100vh;
     box-sizing: border-box;
-    padding-bottom: 3rem;
   }
 
-  .page-title {
-    font-family: 'Iosevka Charon', sans-serif;
-    font-size: clamp(2.4rem, 4vw, 3.4rem);
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 2.5rem;
-    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
-  }
-
-  /* ── Tree groups (flat, no glass) ──────────────────── */
-  .tree-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .tree-group {
-    padding: 0.2rem 0;
-  }
-
-  .tree-group-header {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-weight: 600;
-    font-size: 1.05rem;
-    margin-bottom: 0.6rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(168, 152, 120, 0.18);
-  }
-
-  .tree-group-name {
-    color: var(--accent);
-    font-weight: 700;
-    font-family: "Iosevka Charon", monospace;
-    font-style: italic;
-  }
-
-  .tree-group-children {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .tree-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text);
-    text-decoration: none;
-    padding: 0.4rem 0.7rem;
+  .post-container {
+    width: 100%;
+    min-height: calc(100vh - 3rem);
+    background: var(--glass);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    border: 1px solid var(--glass-border);
+    padding: 3rem;
     border-radius: 0;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: monospace;
-    font-size: 0.93rem;
+    box-sizing: border-box;
   }
 
-  .tree-item:hover {
+  .post-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .tags {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(224, 168, 32, 0.15);
     color: var(--accent);
-    background: rgba(20, 10, 5, 0.35);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.2em 0.75em;
+    border-radius: 999px;
+    font-family: "Iosevka Charon", monospace;
   }
 
-  .tree-item:hover .tree-item-title {
+  .post-title {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .post-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: "Iosevka Charon", monospace;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(168, 152, 120, 0.18);
+    margin: 2rem 0;
+  }
+
+  /* ── Markdown prose styles ─────────────────────────── */
+  .post-content :global(h2) {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .post-content :global(h3) {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .post-content :global(p) {
+    margin-bottom: 1.4em;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  .post-content :global(ul),
+  .post-content :global(ol) {
+    padding-left: 1.5em;
+    margin-bottom: 1.4em;
+  }
+
+  .post-content :global(li) {
+    margin-bottom: 0.4em;
+  }
+
+  .post-content :global(blockquote) {
+    border-left: 3px solid var(--accent);
+    padding: 0.6em 1.2em;
+    margin: 2em 0;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(20, 10, 5, 0.3);
+  }
+
+  .post-content :global(code) {
+    background: rgba(224, 168, 32, 0.12);
+    color: var(--accent);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: "Iosevka Charon", monospace;
+  }
+
+  .post-content :global(pre) {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1.4em;
+    border-radius: 0;
+    overflow-x: auto;
+    margin: 2em 0;
+    border: 1px solid var(--glass-border);
+  }
+
+  .post-content :global(pre code) {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+
+  .post-content :global(a) {
+    color: var(--accent);
     text-decoration: underline;
-    text-decoration-color: var(--accent-soft);
     text-underline-offset: 3px;
   }
 
-  .tree-prefix {
-    font-family: monospace;
-    color: var(--text-muted);
-    white-space: pre;
-    flex-shrink: 0;
-    opacity: 0.6;
+  .post-content :global(a:hover) {
+    color: var(--text);
   }
 
-  .tree-item-title {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .post-content :global(hr) {
+    border: none;
+    border-top: 1px solid rgba(168, 152, 120, 0.18);
+    margin: 2.5em 0;
   }
 
-  .tree-item time {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    white-space: nowrap;
+  .post-content :global(strong) {
+    color: var(--accent-soft);
+  }
+
+  .post-content :global(img) {
+    max-width: 100%;
+    border-radius: 0;
+    margin: 2em 0;
+  }
+
+  .post-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(168, 152, 120, 0.18);
+  }
+
+  .back-link {
     font-family: "Iosevka Charon", monospace;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
   }
 
-  /* ── Responsive ────────────────────────────────────── */
+  .back-link:hover {
+    color: var(--accent);
+  }
+
   @media (max-width: 768px) {
     .sidebar {
       display: none;
@@ -346,6 +367,10 @@ const sortedGroups = Object.keys(groups).sort((a, b) => a.localeCompare(b));
       margin-left: 0;
       padding: 1.5rem;
       padding-bottom: 3rem;
+    }
+
+    .post-container {
+      padding: 1.5rem;
     }
   }
 </style>

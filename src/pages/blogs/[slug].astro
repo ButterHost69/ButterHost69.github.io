@@ -1,0 +1,31 @@
+---
+import BlogPostLayout from '../../layouts/BlogPostLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+
+  const seen = new Set<string>();
+  const paths = posts.map(post => {
+    const slug = post.id.split('/').pop()!.replace(/\.md$/, '');
+    if (seen.has(slug)) {
+      throw new Error(
+        `Duplicate blog filename detected: "${slug}". ` +
+        `Files in different categories cannot share the same filename. ` +
+        `Conflicting file: ${post.id}`
+      );
+    }
+    seen.add(slug);
+    return { params: { slug }, props: { post } };
+  });
+
+  return paths;
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+---
+
+<BlogPostLayout post={post}>
+  <Content />
+</BlogPostLayout>

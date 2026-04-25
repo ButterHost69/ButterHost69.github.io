@@ -2,7 +2,7 @@
 title: "Getting started with adapTrunc"
 description: "Using class separability as a proxy to find optimal truncation depth in BERT-style models."
 pubDate: 2025-04-01
-tags: ["ML", "NLP", "research"]
+# tags: ["ML", "NLP", "research"]
 ---
 
 This is a sample post — replace this with your own content.
@@ -27,3 +27,8 @@ a compute cost for nothing.
 - Validate CSM–accuracy correlation on spam and CoLA datasets  
 - Compare frozen vs. unfrozen layer-head weights at each depth  
 - Write up results
+
+```py
+def hello():
+    damn
+```
