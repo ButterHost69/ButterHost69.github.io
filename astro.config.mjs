@@ -3,5 +3,5 @@ import mdx from '@astrojs/mdx';
 
 export default defineConfig({
   site: 'https://ButterHost69.github.io',
-  base: '/ButterHost69/ButterHost69.github.io',
+  base: '/',
 })
