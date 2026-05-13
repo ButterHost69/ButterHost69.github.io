@@ -1,0 +1,69 @@
+---
+import ProjectLayout from '../../layouts/ProjectLayout.astro';
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+interface GitHubData {
+  stars: number;
+  forks: number;
+}
+
+export async function getStaticPaths() {
+  const allEntries = await getCollection('projects');
+
+  // Pre-fetch GitHub data for entries that request it
+  const githubCache = new Map<string, GitHubData>();
+
+  for (const entry of allEntries) {
+    if (entry.data.github && entry.data.showGitHubMetrics && !githubCache.has(entry.data.github)) {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${entry.data.github}`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          githubCache.set(entry.data.github, {
+            stars: json.stargazers_count ?? 0,
+            forks: json.forks_count ?? 0,
+          });
+        } else {
+          githubCache.set(entry.data.github, { stars: 0, forks: 0 });
+        }
+      } catch {
+        githubCache.set(entry.data.github, { stars: 0, forks: 0 });
+      }
+    }
+  }
+
+  return allEntries.map(entry => {
+    const rawSlug = entry.id.replace(/\.md$/, '');
+    const slug = rawSlug.endsWith('/index')
+      ? rawSlug.slice(0, -6) // remove trailing "/index"
+      : rawSlug;
+
+    const isIndex = entry.id.endsWith('/index.md');
+    const githubData = entry.data.github && entry.data.showGitHubMetrics
+      ? githubCache.get(entry.data.github)
+      : undefined;
+
+    return {
+      params: { slug },
+      props: { entry, allEntries, githubData, isIndex },
+    };
+  });
+}
+
+interface Props {
+  entry: CollectionEntry<'projects'>;
+  allEntries: CollectionEntry<'projects'>[];
+  githubData?: GitHubData;
+  isIndex: boolean;
+}
+
+const { entry, allEntries, githubData, isIndex } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<ProjectLayout entry={entry} allEntries={allEntries} githubData={githubData} isIndex={isIndex}>
+  <Content />
+</ProjectLayout>

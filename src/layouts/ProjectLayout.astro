@@ -1,0 +1,542 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'projects'>;
+  allEntries: CollectionEntry<'projects'>[];
+  githubData?: { stars: number; forks: number };
+  isIndex: boolean;
+}
+
+const { entry, allEntries, githubData, isIndex } = Astro.props;
+const { title, description, tags, links, github, showGitHubMetrics } = entry.data;
+
+// Group entries by folder path
+const projectSlug = entry.id.split('/')[0];
+
+// Filter entries belonging to this project
+const projectEntries = allEntries.filter(e => e.id.startsWith(projectSlug + '/'));
+
+// Group by parent folder (relative to project root)
+type Grouped = Record<string, CollectionEntry<'projects'>[]>;
+const grouped: Grouped = {};
+for (const e of projectEntries) {
+  const relativePath = e.id.slice(projectSlug.length + 1); // remove "slug/"
+  const parts = relativePath.split('/');
+  const groupName = parts.length > 1 ? parts[0] : '_root';
+  if (!grouped[groupName]) grouped[groupName] = [];
+  grouped[groupName].push(e);
+}
+
+// Sort entries within each group alphabetically
+for (const group of Object.keys(grouped)) {
+  grouped[group].sort((a, b) => a.id.localeCompare(b.id));
+}
+
+// Sort groups: _root first, then alphabetical
+const sortedGroups = Object.keys(grouped).sort((a, b) => {
+  if (a === '_root') return -1;
+  if (b === '_root') return 1;
+  return a.localeCompare(b);
+});
+
+// Determine active group (the one containing current entry)
+const currentRelative = entry.id.slice(projectSlug.length + 1);
+const currentGroup = currentRelative.includes('/') ? currentRelative.split('/')[0] : '_root';
+
+function getEntryUrl(e: CollectionEntry<'projects'>): string {
+  const relative = e.id.slice(projectSlug.length + 1);
+  const slug = relative.replace(/\.md$/, '');
+  if (slug === 'index') return `/projects/${projectSlug}`;
+  return `/projects/${projectSlug}/${slug}`;
+}
+
+function getEntryLabel(e: CollectionEntry<'projects'>): string {
+  const relative = e.id.slice(projectSlug.length + 1);
+  const base = relative.replace(/\.md$/, '');
+  if (base === 'index') return 'index';
+  return base.split('/').pop() || base;
+}
+
+function isActive(e: CollectionEntry<'projects'>): boolean {
+  return e.id === entry.id;
+}
+
+const globalLinks = [
+  { label: '/h', url: '/' },
+  { label: '/b', url: '/blogs' },
+  { label: '/p', url: '/projects' },
+  { label: '/a', url: '/about' },
+  { label: '/r', url: '/resume' },
+];
+---
+
+<BaseLayout title={title} description={description || title}>
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <a href={`/projects/${projectSlug}`} class="project-name">{projectSlug}</a>
+      <nav class="sidebar-nav">
+        {sortedGroups.map(group => {
+          const entries = grouped[group];
+          const isOpen = group === currentGroup || group === '_root';
+          const groupLabel = group === '_root' ? null : group;
+          return (
+            <div class="nav-group" data-open={isOpen}>
+              {groupLabel && (
+                <button class="group-toggle" type="button" data-group={group}>
+                  <span class="toggle-icon">{isOpen ? '▼' : '▶'}</span>
+                  <span class="group-label">{groupLabel}</span>
+                </button>
+              )}
+              <div class="group-entries" style={!isOpen && groupLabel ? 'display:none' : ''}>
+                {entries.map(e => (
+                  <a
+                    href={getEntryUrl(e)}
+                    class:list={['sidebar-link', { active: isActive(e) }]}
+                  >
+                    {getEntryLabel(e)}
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+    </div>
+
+    <div class="sidebar-bottom">
+      {globalLinks.map(link => (
+        <a href={link.url} class="global-link">{link.label}</a>
+      ))}
+    </div>
+  </aside>
+
+  <main class="main-content">
+    {isIndex && (
+      <header class="project-header">
+        <h1 class="project-title">{title}</h1>
+        {description && <p class="project-description">{description}</p>}
+        {tags.length > 0 && (
+          <div class="tags">
+            {tags.map(tag => <span class="tag">{tag}</span>)}
+          </div>
+        )}
+        <div class="project-toolbar">
+          {github && showGitHubMetrics && githubData && (
+            <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" class="toolbar-item">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="toolbar-icon"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              <span>★ {githubData.stars.toLocaleString()}</span>
+            </a>
+          )}
+          {github && (
+            <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" class="toolbar-item">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="toolbar-icon"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              <span>GitHub</span>
+            </a>
+          )}
+          {links.map(link => (
+            <a href={link.url} target="_blank" rel="noopener noreferrer" class="toolbar-item">
+              <span>{link.label}</span>
+            </a>
+          ))}
+        </div>
+      </header>
+    )}
+
+    {!isIndex && (
+      <header class="subpage-header">
+        <a href={`/projects/${projectSlug}`} class="back-to-project">← {projectSlug}</a>
+        <h1 class="subpage-title">{title}</h1>
+      </header>
+    )}
+
+    <div class="page-content">
+      <slot />
+    </div>
+  </main>
+
+  <script is:inline>
+    document.querySelectorAll('.group-toggle').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var entries = btn.nextElementSibling;
+        var icon = btn.querySelector('.toggle-icon');
+        var isHidden = entries.style.display === 'none';
+        entries.style.display = isHidden ? '' : 'none';
+        icon.textContent = isHidden ? '▼' : '▶';
+      });
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Iosevka+Charon:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+  :root {
+    --burnt-bg:    #140a05;
+    --text:        #f5f0e0;
+    --text-muted:  #a89878;
+    --accent:      #e0a820;
+    --accent-soft: #c89420;
+    --glass:       rgba(20, 10, 5, 0.65);
+    --glass-hover: rgba(20, 10, 5, 0.82);
+    --glass-border:rgba(224, 168, 32, 0.10);
+    --highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  :global(body) {
+    background-color: var(--burnt-bg);
+    background-image: url('https://github.com/ButterHost69/ButterHost69.github.io/blob/main/images/wallpapers/my-neighbor-totoro-sunflowers.png?raw=true');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    color: var(--text);
+  }
+
+  :global(body::before) {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 10, 5, 0.72);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* ── Sidebar ───────────────────────────────────────── */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--glass);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    border-right: 1px solid var(--glass-border);
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 0 0 transparent, var(--highlight);
+  }
+
+  .sidebar-top {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .project-name {
+    font-family: "Iosevka Charon", monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-decoration: none;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(224, 168, 32, 0.15);
+  }
+
+  .project-name:hover {
+    color: var(--text);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .group-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: "Iosevka Charon", monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+    text-align: left;
+    transition: color 0.2s;
+  }
+
+  .group-toggle:hover {
+    color: var(--text);
+  }
+
+  .toggle-icon {
+    font-size: 0.65rem;
+    opacity: 0.7;
+  }
+
+  .group-label {
+    text-transform: lowercase;
+  }
+
+  .group-entries {
+    display: flex;
+    flex-direction: column;
+    padding-left: 1.4rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .sidebar-link {
+    font-family: "Iosevka Charon", monospace;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    margin: 0 -0.6rem;
+  }
+
+  .sidebar-link:hover {
+    color: var(--text);
+    background: var(--glass-hover);
+  }
+
+  .sidebar-link.active {
+    color: var(--text);
+    font-weight: 700;
+    background: var(--glass-hover);
+  }
+
+  .sidebar-bottom {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(168, 152, 120, 0.15);
+  }
+
+  .global-link {
+    font-family: "Iosevka Charon", monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .global-link:hover {
+    color: var(--accent);
+  }
+
+  /* ── Main content ──────────────────────────────────── */
+  .main-content {
+    margin-left: 280px;
+    padding: 2rem 3rem;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .project-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(168, 152, 120, 0.18);
+  }
+
+  .project-title {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .project-description {
+    font-family: "Iosevka Charon", monospace;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(224, 168, 32, 0.15);
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.2em 0.75em;
+    border-radius: 999px;
+    font-family: "Iosevka Charon", monospace;
+  }
+
+  .project-toolbar {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: "Iosevka Charon", monospace;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.3rem 0.7rem;
+    background: rgba(20, 10, 5, 0.4);
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s;
+  }
+
+  .toolbar-item:hover {
+    color: var(--accent);
+    border-color: rgba(224, 168, 32, 0.25);
+  }
+
+  .toolbar-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .subpage-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(168, 152, 120, 0.18);
+  }
+
+  .back-to-project {
+    font-family: "Iosevka Charon", monospace;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .back-to-project:hover {
+    color: var(--accent);
+  }
+
+  .subpage-title {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .page-content {
+    line-height: 1.75;
+  }
+
+  .page-content :global(h2) {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .page-content :global(h3) {
+    font-family: 'Iosevka Charon', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 1.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .page-content :global(p) {
+    margin-bottom: 1.2em;
+    color: var(--text);
+  }
+
+  .page-content :global(ul), .page-content :global(ol) {
+    padding-left: 1.5em;
+    margin-bottom: 1.2em;
+  }
+
+  .page-content :global(li) {
+    margin-bottom: 0.3em;
+  }
+
+  .page-content :global(a) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .page-content :global(a:hover) {
+    color: var(--text);
+  }
+
+  .page-content :global(code) {
+    background: rgba(224, 168, 32, 0.12);
+    color: var(--accent);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    font-family: "Iosevka Charon", monospace;
+  }
+
+  .page-content :global(pre) {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1.2em;
+    border-radius: 0;
+    overflow-x: auto;
+    margin: 1.5em 0;
+    border: 1px solid var(--glass-border);
+  }
+
+  .page-content :global(pre code) {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+
+  .page-content :global(blockquote) {
+    border-left: 3px solid var(--accent);
+    padding: 0.6em 1.2em;
+    margin: 1.5em 0;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(20, 10, 5, 0.3);
+  }
+
+  .page-content :global(img) {
+    max-width: 100%;
+    border-radius: 0;
+    margin: 1.5em 0;
+  }
+
+  .page-content :global(strong) {
+    color: var(--accent-soft);
+  }
+
+  /* ── Responsive ────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .sidebar {
+      display: none;
+    }
+
+    .main-content {
+      margin-left: 0;
+      padding: 1.5rem;
+    }
+  }
+</style>

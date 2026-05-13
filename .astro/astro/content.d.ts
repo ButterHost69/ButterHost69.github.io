@@ -177,6 +177,29 @@ declare module 'astro:content' {
   data: InferEntrySchema<"posts">
 } & { render(): Render[".md"] };
 };
+"projects": {
+"adaptrunc/docs/architecture.md": {
+	id: "adaptrunc/docs/architecture.md";
+  slug: "adaptrunc/docs/architecture";
+  body: string;
+  collection: "projects";
+  data: InferEntrySchema<"projects">
+} & { render(): Render[".md"] };
+"adaptrunc/implementation/layer-pruning.md": {
+	id: "adaptrunc/implementation/layer-pruning.md";
+  slug: "adaptrunc/implementation/layer-pruning";
+  body: string;
+  collection: "projects";
+  data: InferEntrySchema<"projects">
+} & { render(): Render[".md"] };
+"adaptrunc/index.md": {
+	id: "adaptrunc/index.md";
+  slug: "adaptrunc";
+  body: string;
+  collection: "projects";
+  data: InferEntrySchema<"projects">
+} & { render(): Render[".md"] };
+};
 
 	};
 
